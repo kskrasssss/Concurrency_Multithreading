@@ -148,11 +148,111 @@ void task4() {
     std::cout << std::endl;
 }
 
+// Завдання 5: Producer-Consumer з condition_variable
+// -------------------------------------------------------
+
+// Безпечний клас черги
+// Внутрішній mutex і condition_variable захищають чергу від data race
+template <typename T>
+class SafeQueue {
+private:
+    std::queue<T> queue;           // сама черга
+    std::mutex mtx;                // захист від одночасного доступу
+    std::condition_variable cv;    // для сигналів між потоками
+    const int maxSize;             // максимальний розмір черги
+    bool done = false;             // сигнал що producer закінчив
+
+public:
+    explicit SafeQueue(int max) : maxSize(max) {}
+
+    // enqueue — додати елемент
+    // Producer викликає цей метод
+    void enqueue(T value) {
+        // unique_lock — як lock_guard але можна тимчасово відпустити
+        // потрібен для condition_variable
+        std::unique_lock<std::mutex> lock(mtx);
+
+        // wait — відпускає mutex і засинає ПОКИ черга повна
+        // прокидається коли consumer щось забере і викличе notify
+        cv.wait(lock, [this]() {
+            return (int)queue.size() < maxSize;
+            });
+
+        queue.push(value);
+        std::cout << "  Produced: " << value
+            << " (queue size: " << queue.size() << ")" << std::endl;
+
+        // notify_one — будить один потік що чекає в dequeue
+        cv.notify_one();
+    }
+
+    // dequeue — забрати елемент
+    // Consumer викликає цей метод
+    bool dequeue(T& value) {
+        std::unique_lock<std::mutex> lock(mtx);
+
+        // wait — засинає ПОКИ черга порожня І producer ще не закінчив
+        cv.wait(lock, [this]() {
+            return !queue.empty() || done;
+            });
+
+        // якщо черга порожня і done=true — producer закінчив, виходимо
+        if (queue.empty()) return false;
+
+        value = queue.front();
+        queue.pop();
+        std::cout << "  Consumed: " << value
+            << " (queue size: " << queue.size() << ")" << std::endl;
+
+        // будимо producer якщо він чекав що черга звільниться
+        cv.notify_one();
+        return true;
+    }
+
+    // setDone — producer сигналізує що більше елементів не буде
+    void setDone() {
+        std::unique_lock<std::mutex> lock(mtx);
+        done = true;
+        cv.notify_all();  // будимо всіх consumers
+    }
+};
+
+void task5() {
+    std::cout << "=== Task 5: Producer-Consumer ===" << std::endl;
+
+    SafeQueue<int> sq(3);  // черга максимум 3 елементи
+
+    // Producer — додає числа 1..6 в чергу
+    std::thread producer([&sq]() {
+        for (int i = 1; i <= 6; i++) {
+            std::this_thread::sleep_for(std::chrono::milliseconds(50));
+            sq.enqueue(i);
+        }
+        sq.setDone();  // повідомляємо що більше елементів не буде
+        std::cout << "  Producer done." << std::endl;
+        });
+
+    // Consumer — забирає елементи поки є
+    std::thread consumer([&sq]() {
+        int value;
+        while (sq.dequeue(value)) {
+            std::this_thread::sleep_for(std::chrono::milliseconds(80));
+        }
+        std::cout << "  Consumer done." << std::endl;
+        });
+
+    producer.join();
+    consumer.join();
+
+    std::cout << std::endl;
+}
+
 int main() {
     task1();
     task2();
     task3();
-    // task4(); // викличе deadlock
+    task4();
+    task5();
     std::cin.get();
     return 0;
 }
