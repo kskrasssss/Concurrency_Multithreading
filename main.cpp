@@ -76,9 +76,47 @@ void task2() {
     std::cout << std::endl;
 }
 
+// Завдання 3: mutex захищає counter від Data Race
+
+// Mutex — замок. Тільки один потік може його тримати одночасно
+std::mutex counterMutex;
+
+void task3() {
+    std::cout << "=== Task 3: mutex protection, no Data Race ===" << std::endl;
+    counter = 0;
+
+    auto safeIncrement = [](int thread_id) {
+        for (int i = 0; i < 5; i++) {
+            std::this_thread::sleep_for(std::chrono::milliseconds(1));
+
+            // lock_guard — блокує mutex при створенні
+            // автоматично розблоковує коли виходить зі scope (кінець if-блоку)
+            // поки один потік тут — інші чекають перед цим рядком
+            {
+                std::lock_guard<std::mutex> lock(counterMutex);
+                counter += thread_id;  // захищено — тільки один потік тут одночасно
+                std::cout << "Thread " << thread_id
+                    << " → counter = " << counter << std::endl;
+            }
+            // тут mutex вже розблоковано — інший потік може увійти
+        }
+        };
+
+    std::thread t1(safeIncrement, 1);
+    std::thread t2(safeIncrement, 2);
+    std::thread t3(safeIncrement, 3);
+
+    t1.join(); t2.join(); t3.join();
+
+    std::cout << "Final counter (expected " << (1 + 2 + 3) * 5 << "): "
+        << counter << std::endl;
+    std::cout << std::endl;
+}
+
 int main() {
     task1();
     task2();
+    task3();
     std::cin.get();
     return 0;
 }
