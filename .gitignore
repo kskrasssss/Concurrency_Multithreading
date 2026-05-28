@@ -1,0 +1,25 @@
+# Visual Studio build folders
+.vs/
+Debug/
+Release/
+x64/
+x86/
+
+# Compiled files
+*.exe
+*.obj
+*.pdb
+*.ilk
+*.idb
+*.ipdb
+*.iobj
+
+# User-specific files
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+
+# Temporary files
+*.tmp
+*.cache

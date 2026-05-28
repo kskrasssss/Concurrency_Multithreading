@@ -1,0 +1,9 @@
+# Normalize line endings
+* text=auto
+
+# Force binary for compiled files
+*.exe binary
+*.obj binary
+*.pdb binary
+*.dll binary
+*.lib binary
