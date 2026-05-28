@@ -1,11 +1,40 @@
 #include <iostream>
-#include <thread>      // std::thread Ч створенн€ поток≥в
-#include <mutex>       // std::mutex Ч захист в≥д data race
-#include <condition_variable>  // std::condition_variable Ч синхрон≥зац≥€
-#include <queue>       // std::queue Ч черга дл€ producer-consumer
+#include <thread>
+#include <mutex>
+#include <condition_variable>
+#include <queue>
 #include <string>
 
+// «авданн€ 1: три потоки, л€мбда п≥дносить число до квадрату
+
+void task1() {
+    std::cout << "=== Task 1: three threads, square ===" << std::endl;
+
+    // Ћ€мбда €ка п≥дносить n до квадрату ≥ виводить результат
+    // [n] Ч захоплюЇмо n за значенн€м (коп≥€ дл€ кожного потоку)
+    auto squareLambda = [](int n) {
+        int result = n * n;
+        std::cout << "Thread " << n << ": "
+            << n << "^2 = " << result << std::endl;
+        };
+
+    // —творюЇмо три потоки, кожен виконуЇ squareLambda з≥ своњм числом
+    // std::thread t(функц≥€, аргументи...)
+    std::thread t1(squareLambda, 3);
+    std::thread t2(squareLambda, 5);
+    std::thread t3(squareLambda, 7);
+
+    // join() Ч чекаЇмо поки кожен пот≥к завершитьс€
+    // без join Ч програма може закритись ран≥ше н≥ж потоки виведуть результат
+    t1.join();
+    t2.join();
+    t3.join();
+
+    std::cout << std::endl;
+}
+
 int main() {
+    task1();
     std::cin.get();
     return 0;
 }
