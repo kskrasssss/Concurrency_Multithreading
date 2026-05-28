@@ -113,10 +113,46 @@ void task3() {
     std::cout << std::endl;
 }
 
+// Завдання 4: Deadlock — два потоки, два mutex, різний порядок
+std::mutex mutex1;
+std::mutex mutex2;
+
+void task4() {
+    std::cout << "=== Task 4: Deadlock demonstration ===" << std::endl;
+    std::cout << "WARNING: this will deadlock! Close manually." << std::endl;
+
+    // Потік 1: спочатку бере mutex1, потім mutex2
+    std::thread t1([]() {
+        std::lock_guard<std::mutex> lock1(mutex1);  // бере mutex1
+        std::cout << "Thread 1: got mutex1, waiting for mutex2..." << std::endl;
+        std::this_thread::sleep_for(std::chrono::milliseconds(100));  // пауза щоб потік 2 встиг взяти mutex2
+        std::lock_guard<std::mutex> lock2(mutex2);  // чекає mutex2 — але його тримає потік 2!
+        std::cout << "Thread 1: got both mutexes" << std::endl;
+        });
+
+    // Потік 2: спочатку бере mutex2, потім mutex1
+    std::thread t2([]() {
+        std::lock_guard<std::mutex> lock2(mutex2);  // бере mutex2
+        std::cout << "Thread 2: got mutex2, waiting for mutex1..." << std::endl;
+        std::this_thread::sleep_for(std::chrono::milliseconds(100));
+        std::lock_guard<std::mutex> lock1(mutex1);  // чекає mutex1 — але його тримає потік 1
+        std::cout << "Thread 2: got both mutexes" << std::endl;
+        });
+
+    // DEADLOCK: t1 чекає mutex2 який тримає t2
+    //           t2 чекає mutex1 який тримає t1
+
+    t1.join();
+    t2.join();
+
+    std::cout << std::endl;
+}
+
 int main() {
     task1();
     task2();
     task3();
+    // task4(); // викличе deadlock
     std::cin.get();
     return 0;
 }
